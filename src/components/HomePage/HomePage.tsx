@@ -10,22 +10,18 @@ import {
   useFetchNewYorkTimesArticlesData,
   useFetchTheGuardianData,
   useFetchSearchResultData,
-  useFetchNYTimesSectionListData,
-  useFetchTheGuardianSectionListData,
+  useFetchSectionsListData,
 } from "../../services/useApi";
 import NewsList from "../NewsList/NewsList";
 import { NewsSkeleton } from "../NewsSkeleton/NewsSkeleton";
 import { ScrollButton } from "../ScrollToTopButton/ScrollToTopButton";
-import { filterNews, isValidDate } from "../../utils";
+import { filterNews } from "../../utils";
 import { SelectOptions } from "../../types";
 import {
   dayOptions,
   monthOptions,
-  newsApiKey,
   newsApiOrgCategoryList,
-  nYTimesKey,
   sourceOptions,
-  theGuardianAPiKey,
   yearOptions,
 } from "../../constants";
 
@@ -43,12 +39,6 @@ const HomePage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] =
     useState<SelectOptions | null>(null);
 
-  //to-do: implement date range filter
-  // const [dateRange, setDateRange] = useState({
-  //   from: { month: "", date: "", year: "" },
-  //   to: { month: "", date: "", year: "" },
-  // });
-
   const [selectedFromDay, setSelectedFromDay] = useState<SelectOptions | null>(
     null
   );
@@ -65,27 +55,17 @@ const HomePage: React.FC = () => {
   const [selectedToYear, setSelectedToYear] = useState<SelectOptions | null>(
     null
   );
-  const [filteredNewsData, setFilteredNewsData] = useState([]);
-  const [filterFromDate, setFilterFromDate] = useState("");
-  const [filterToDate, setFilterToDate] = useState("");
+  const [filterFromDate, setFilterFromDate] = useState<string | null>(null);
+  const [filterToDate, setFilterToDate] = useState<string | null>(null);
   const [filterDateError, setFilterDateError] = useState("");
 
   const [isShowSearchInput, setIsShowSearchInput] = useState(false);
   const [isShowSettings, setIsShowSettings] = useState(false);
 
-  const { allNewsApiData, isLoadingNewsApiData, isErrorNewsApiData } =
-    useFetchNewsApiData();
+  const { allNewsApiData } = useFetchNewsApiData();
 
-  const {
-    allNewYorkTimesData,
-    isLoadingNewYorkTimesData,
-    isErrorNewYorkTimesData,
-  } = useFetchNewYorkTimesArticlesData();
-  const {
-    allTheGuardianData,
-    isLoadingTheGuardianData,
-    isErrorTheGuardianData,
-  } = useFetchTheGuardianData();
+  const { allNewYorkTimesData } = useFetchNewYorkTimesArticlesData();
+  const { allTheGuardianData } = useFetchTheGuardianData();
 
   const allBreakingNewsData = useMemo(
     () => [...allNewsApiData, ...allNewYorkTimesData, ...allTheGuardianData],
@@ -109,14 +89,18 @@ const HomePage: React.FC = () => {
       allTheGuardianData,
     ]
   );
+
   const { searchResultData, isSearchResultLoading, isSearchResultError } =
     useFetchSearchResultData(
       searchQuery,
-      selectedCategory?.label.toLowerCase() as string
+      selectedCategory?.label.toLowerCase() as string,
+      selectedSource as Array<SelectOptions>,
+      filterFromDate,
+      filterToDate
     );
 
-  const { NYTimesSectionListData } = useFetchNYTimesSectionListData();
-  const { TheGuardianSectionListData } = useFetchTheGuardianSectionListData();
+  const { NYTimesSectionListData, TheGuardianSectionListData } =
+    useFetchSectionsListData();
 
   const guardianSectionsList = TheGuardianSectionListData?.map(
     ({ id, webTitle }: { id: string; webTitle: string }) => ({ id, webTitle })
@@ -141,14 +125,18 @@ const HomePage: React.FC = () => {
     return allCategories.find((obj) => obj.id === id);
   });
 
-  const newsData =
-    filterToDate.length > 0 && filteredNewsData?.length >= 0
-      ? filteredNewsData
-      : (searchQuery.length > 0 ||
-          (selectedCategory && selectedCategory.label?.length > 0)) &&
-        searchResultData?.length >= 0
-      ? searchResultData
-      : filteredNews;
+  const newsData = useMemo(() => {
+    if (searchQuery.length > 0 || filterFromDate || filterToDate) {
+      return searchResultData;
+    }
+    return filteredNews;
+  }, [
+    searchQuery,
+    filterFromDate,
+    filterToDate,
+    searchResultData,
+    filteredNews,
+  ]);
 
   function getDataFromStorage(): [] {
     return JSON.parse(localStorage.getItem("favNews") ?? "[]");
@@ -204,6 +192,16 @@ const HomePage: React.FC = () => {
     setQuery(value);
     if (value === "") {
       clearSearchQuery();
+      // Reset filters but keep them visible
+      setSelectedCategory(null);
+      setFilterFromDate(null);
+      setFilterToDate(null);
+      setSelectedFromDay(null);
+      setSelectedFromMonth(null);
+      setSelectedFromYear(null);
+      setSelectedToDay(null);
+      setSelectedToMonth(null);
+      setSelectedToYear(null);
     }
   }
 
@@ -252,89 +250,44 @@ const HomePage: React.FC = () => {
   };
 
   useEffect(() => {
-    const fetchFilteredNews = async () => {
-      if (searchQuery.trim() === "") return;
+    const fromDay = selectedFromDay?.value;
+    const fromMonth = selectedFromMonth?.value;
+    const fromYear = selectedFromYear?.value;
 
-      const fromDay = selectedFromDay?.value;
-      const fromMonth = selectedFromMonth?.value;
-      const fromYear = selectedFromYear?.value;
+    const toDay = selectedToDay?.value;
+    const toMonth = selectedToMonth?.value;
+    const toYear = selectedToYear?.value;
 
-      const toDay = selectedToDay?.value;
-      const toMonth = selectedToMonth?.value;
-      const toYear = selectedToYear?.value;
+    const fromDateString =
+      fromYear && fromMonth && fromDay
+        ? `${fromYear}-${fromMonth.toString().padStart(2, "0")}-${fromDay
+            .toString()
+            .padStart(2, "0")}`
+        : null;
 
-      const fromDateString = `${fromYear}-${fromMonth
-        ?.toString()
-        .padStart(2, "0")}-${fromDay?.toString().padStart(2, "0")}`;
+    const toDateString =
+      toYear && toMonth && toDay
+        ? `${toYear}-${toMonth.toString().padStart(2, "0")}-${toDay
+            .toString()
+            .padStart(2, "0")}`
+        : null;
 
-      const toDateString = `${toYear}-${toMonth
-        ?.toString()
-        .padStart(2, "0")}-${toDay?.toString().padStart(2, "0")}`;
+    const today = new Date().toISOString().split("T")[0];
 
-      const beginDateString = `${fromYear}${fromMonth
-        ?.toString()
-        .padStart(2, "0")}${fromDay?.toString().padStart(2, "0")}`;
-
-      const endDateString = `${fromYear}${fromMonth
-        ?.toString()
-        .padStart(2, "0")}${fromDay?.toString().padStart(2, "0")}`;
-
-      if (
-        (isValidDate(fromDateString) && fromDateString < toDateString) ||
-        (isValidDate(beginDateString) && beginDateString < endDateString)
-      )
-        setFilterFromDate(fromDateString);
-      if (
-        (isValidDate(toDateString) && fromDateString < toDateString) ||
-        (isValidDate(endDateString) && beginDateString < endDateString)
-      ) {
-        setFilterToDate(toDateString);
-      }
-
-      if (fromDateString > toDateString || beginDateString > endDateString) {
+    if (fromDateString && toDateString) {
+      if (fromDateString > toDateString) {
         setFilterDateError("From date cannot be greater than To date");
         return;
+      } else if (fromDateString > today || toDateString > today) {
+        setFilterDateError("Cannot select future dates");
+        return;
       } else {
-        try {
-          let newsApiSearchByQueryUrl = `https://newsapi.org/v2/everything?q=${searchQuery}&apiKey=${newsApiKey}`;
-          let NYTimesSearchByQueryUrl = `https://api.nytimes.com/svc/search/v2/articlesearch.json?q=${searchQuery}&api-key=${nYTimesKey}`;
-          let theGuardianSearchByQueryUrl = `https://content.guardianapis.com/search?q=${searchQuery}&page-size=20&show-fields=thumbnail&api-key=${theGuardianAPiKey}`;
-
-          if (selectedToDay && selectedToMonth && selectedToYear) {
-            newsApiSearchByQueryUrl += `&from=${fromDateString}&to=${toDateString}`;
-            NYTimesSearchByQueryUrl += `&begin_date=${beginDateString}&end_date=${endDateString}`;
-            theGuardianSearchByQueryUrl += `&from-date=${fromDateString}&to-date=${toDateString}`;
-          }
-
-          const newsApiResponse = await fetch(newsApiSearchByQueryUrl);
-          const nYTimesApiResponse = await fetch(NYTimesSearchByQueryUrl);
-          const theGuardianApiResponse = await fetch(
-            theGuardianSearchByQueryUrl
-          );
-
-          const newsApiData = await newsApiResponse.json();
-          const nYTimesApiData = await nYTimesApiResponse.json();
-          const theGuardianApiData = await theGuardianApiResponse.json();
-
-          const mergedArray: any = [
-            ...(newsApiData?.articles ?? []),
-            ...(nYTimesApiData?.response?.docs ??
-              nYTimesApiData?.articles ??
-              []),
-            ...(theGuardianApiData?.response?.results ??
-              theGuardianApiData?.response?.docs ??
-              []),
-          ];
-
-          setFilteredNewsData(mergedArray);
-        } catch (error) {
-          console.error("Error fetching filtered news data:", error);
-        }
+        setFilterDateError("");
+        setFilterFromDate(fromDateString);
+        setFilterToDate(toDateString);
       }
-    };
-    fetchFilteredNews();
+    }
   }, [
-    searchQuery,
     selectedFromDay,
     selectedFromMonth,
     selectedFromYear,
@@ -373,6 +326,7 @@ const HomePage: React.FC = () => {
 
   const handleSettingsButtonClick = () => {
     setIsShowSettings(!isShowSettings);
+    setSearchQuery("");
     setIsShowSearchInput(false);
   };
 
@@ -418,7 +372,7 @@ const HomePage: React.FC = () => {
               options={categoryOptionsList}
               placeholder="Select a category"
               isClearable
-              isDisabled={filterToDate.length > 0}
+              isDisabled={!!filterToDate && filterToDate.length > 0}
               className="col-span-full md:col-span-2"
               styles={{
                 option: (provided) => ({
@@ -487,106 +441,118 @@ const HomePage: React.FC = () => {
           </div>
         )}
 
-        {searchQuery.length > 0 && searchResultData?.length > 0 && (
-          <div className="w-full flex col-span-full flex-col">
-            <h2 className="text-lg font-bold">Date range:</h2>
-            <div className="w-full grid sm:grid-cols-2 gap-4">
-              <div className="col-span-full sm:col-span-1">
-                <h2>From Date</h2>
-                <div className="grid grid-cols-3 gap-2">
-                  <Select
-                    value={selectedFromMonth}
-                    onChange={handleFromMonthChange}
-                    options={monthOptions}
-                    placeholder="MM"
-                  />
-                  <Select
-                    value={selectedFromDay}
-                    onChange={handleFromDayChange}
-                    options={dayOptions}
-                    placeholder="DD"
-                  />
-                  <Select
-                    value={selectedFromYear}
-                    onChange={handleFromYearChange}
-                    options={yearOptions}
-                    placeholder="YYYY"
-                  />
+        {searchQuery.length > 0 && searchResultData?.length >= 0 && (
+          <>
+            <div className="w-full flex col-span-full flex-col">
+              <h2 className="text-lg font-bold">Date range:</h2>
+              <div className="w-full grid sm:grid-cols-2 gap-4">
+                <div className="col-span-full sm:col-span-1">
+                  <h2>From Date</h2>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Select
+                      value={selectedFromMonth}
+                      onChange={handleFromMonthChange}
+                      options={monthOptions}
+                      placeholder="MM"
+                    />
+                    <Select
+                      value={selectedFromDay}
+                      onChange={handleFromDayChange}
+                      options={dayOptions}
+                      placeholder="DD"
+                    />
+                    <Select
+                      value={selectedFromYear}
+                      onChange={handleFromYearChange}
+                      options={yearOptions}
+                      placeholder="YYYY"
+                    />
+                  </div>
+                </div>
+                <div className="col-span-full sm:col-span-1">
+                  <h2>To date</h2>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Select
+                      value={selectedToMonth}
+                      onChange={handleToMonthChange}
+                      options={monthOptions}
+                      placeholder="MM"
+                    />
+                    <Select
+                      value={selectedToDay}
+                      onChange={handleToDayChange}
+                      options={dayOptions}
+                      placeholder="DD"
+                    />
+                    <Select
+                      value={selectedToYear}
+                      onChange={handleToYearChange}
+                      options={yearOptions}
+                      placeholder="YYYY"
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="col-span-full sm:col-span-1">
-                <h2>To date</h2>
-                <div className="grid grid-cols-3 gap-2">
+            </div>
+            <div className="w-full flex col-span-full flex-col mt-4">
+              <div className="w-full grid sm:grid-cols-2 gap-4">
+                <div className="col-span-full sm:col-span-1">
+                  <h2 className="text-lg font-bold">Select Source</h2>
                   <Select
-                    value={selectedToMonth}
-                    onChange={handleToMonthChange}
-                    options={monthOptions}
-                    placeholder="MM"
+                    value={selectedSource}
+                    onChange={handleSourceSelection}
+                    options={sourceOptions}
+                    placeholder="Select Source"
+                    className={"col-span-full sm:col-span-1"}
+                    isMulti
+                    isClearable
                   />
+                </div>
+                <div className="col-span-full sm:col-span-1">
+                  <h2 className="text-lg font-bold">Select Category</h2>
                   <Select
-                    value={selectedToDay}
-                    onChange={handleToDayChange}
-                    options={dayOptions}
-                    placeholder="DD"
-                  />
-                  <Select
-                    value={selectedToYear}
-                    onChange={handleToYearChange}
-                    options={yearOptions}
-                    placeholder="YYYY"
+                    value={selectedCategory}
+                    onChange={handleCategorySelection}
+                    options={categoryOptionsList}
+                    placeholder="Select Category"
+                    className={"col-span-full sm:col-span-1"}
                   />
                 </div>
               </div>
             </div>
-          </div>
+          </>
         )}
       </div>
 
-      {isErrorNewsApiData &&
-        isErrorNewYorkTimesData &&
-        isErrorTheGuardianData && (
-          <div className="flex flex-col items-center justify-between text-rose-600 text-lg mt-20">
-            <pre>There was a problem.</pre>
-
-            <pre>Please try again later.</pre>
-          </div>
-        )}
-
-      {(searchQuery.length > 0 ||
-        (selectedCategory && selectedCategory.label?.length > 0)) &&
-        isSearchResultLoading && (
-          <div className="mt-3">
-            <NewsSkeleton />
-          </div>
-        )}
-
-      {searchQuery.length > 0 && isSearchResultError && (
-        <div className="flex flex-col items-center justify-between text-rose-600 text-lg mt-20">
-          <pre>There was a problem.</pre>
-
-          <pre>Please try again later.</pre>
-        </div>
-      )}
-
-      {(isLoadingNewsApiData ||
-        isLoadingNewYorkTimesData ||
-        isLoadingTheGuardianData) && (
+      {isSearchResultLoading && (
         <div className="mt-3">
           <NewsSkeleton />
         </div>
       )}
 
-      {(searchQuery.length > 0 ||
-        (selectedCategory && selectedCategory.label?.length > 0)) &&
+      {isSearchResultError && (
+        <div className="flex flex-col items-center justify-between text-rose-600 text-lg mt-20">
+          <pre>Oops! Something went wrong</pre>
+          <pre>Please try again later.</pre>
+        </div>
+      )}
+
+      {/* Show "no results" message when search returns empty results */}
+      {searchQuery.length > 0 &&
+        !isSearchResultLoading &&
         searchResultData?.length === 0 && (
           <p className="col-span-full text-lg font-bold text-center">
-            Hmmm... There were no article found with this search.
+            There were no articles found with this search.
             <br /> Please try another.
           </p>
         )}
 
-      {newsData && <NewsList items={newsData} />}
-      {newsData && <ScrollButton />}
+      {!isSearchResultLoading && newsData && newsData.length > 0 && (
+        <>
+          <NewsList items={newsData} />
+          <ScrollButton />
+        </>
+      )}
     </div>
   );
 };

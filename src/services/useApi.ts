@@ -1,131 +1,200 @@
 import useSWR from "swr";
 import axios from "axios";
 import { newsApiKey, nYTimesKey, theGuardianAPiKey } from "../constants";
+import { SelectOptions } from "../types";
 
-const newsApiAPiUrl = `https://newsapi.org/v2/top-headlines?country=us&pageSize=20&apiKey=${newsApiKey}`;
+const fetcher = (url) => axios.get(url).then((res) => res.data);
+const swrOptions = { revalidateOnFocus: false, dedupingInterval: 60000 };
 
-const newYorkTimesArticlesUrl = `https://api.nytimes.com/svc/news/v3/content/all/all.json?api-key=${nYTimesKey}`;
-
-const theGuardianAPiUrl = `https://content.guardianapis.com/search?&page-size=20&show-fields=thumbnail&api-key=${theGuardianAPiKey}`;
-
-const fetcher = (url: string) => axios.get(url).then((res) => res.data);
+const endpoints = {
+  newsApi: `https://newsapi.org/v2/top-headlines?country=us&pageSize=20&apiKey=${newsApiKey}`,
+  nyTimes: `https://api.nytimes.com/svc/news/v3/content/all/all.json?api-key=${nYTimesKey}`,
+  guardian: `https://content.guardianapis.com/search?&page-size=20&show-fields=thumbnail&api-key=${theGuardianAPiKey}`,
+  nyTimesSections: `https://api.nytimes.com/svc/news/v3/content/section-list.json?api-key=${nYTimesKey}`,
+  guardianSections: `https://content.guardianapis.com/sections?api-key=${theGuardianAPiKey}`,
+};
 
 export function useFetchNewsApiData() {
-  const { data, error } = useSWR(newsApiAPiUrl, fetcher);
-
+  const { data, error } = useSWR(endpoints.newsApi, fetcher, swrOptions);
   return {
     allNewsApiData: data?.articles || [],
-    isLoadingNewsApiData: !error && !data,
+    isLoadingNewsApiData: !data && !error,
     isErrorNewsApiData: error,
   };
 }
 
 export function useFetchNewYorkTimesArticlesData() {
-  const { data, error } = useSWR(newYorkTimesArticlesUrl, fetcher);
-
+  const { data, error } = useSWR(endpoints.nyTimes, fetcher, swrOptions);
   return {
     allNewYorkTimesData: data?.results || [],
-    isLoadingNewYorkTimesData: !error && !data,
+    isLoadingNewYorkTimesData: !data && !error,
     isErrorNewYorkTimesData: error,
   };
 }
 
 export function useFetchTheGuardianData() {
-  const { data, error } = useSWR(theGuardianAPiUrl, fetcher);
-
+  const { data, error } = useSWR(endpoints.guardian, fetcher, swrOptions);
   return {
     allTheGuardianData: data?.response?.results || [],
-    isLoadingTheGuardianData: !error && !data,
+    isLoadingTheGuardianData: !data && !error,
     isErrorTheGuardianData: error,
+  };
+}
+
+export function useFetchSectionsListData() {
+  const { data: nyTimesData } = useSWR(
+    endpoints.nyTimesSections,
+    fetcher,
+    swrOptions
+  );
+  const { data: guardianData } = useSWR(
+    endpoints.guardianSections,
+    fetcher,
+    swrOptions
+  );
+
+  return {
+    NYTimesSectionListData: nyTimesData?.results || [],
+    TheGuardianSectionListData: guardianData?.response?.results || [],
   };
 }
 
 export function useFetchSearchResultData(
   searchQuery: string,
-  category: string
+  category: string | null,
+  selectedSources: Array<SelectOptions>,
+  fromDate: string | null,
+  toDate: string | null
 ) {
-  const newsApiSearchByQueryUrl = `https://newsapi.org/v2/everything?q=${searchQuery}&apiKey=${newsApiKey}`;
-  const NYTimesSearchByQueryUrl = `https://api.nytimes.com/svc/search/v2/articlesearch.json?q=${searchQuery}&api-key=${nYTimesKey}`;
-  const theGuardianSearchByQueryUrl = `https://content.guardianapis.com/search?q=${searchQuery}&page-size=20&show-fields=thumbnail&api-key=${theGuardianAPiKey}`;
+  // Determine if we should fetch based on any filter being active
+  const shouldFetch = searchQuery || category || (fromDate && toDate);
 
-  const newsApiSearchByCategory = `https://newsapi.org/v2/top-headlines?country=us&category=${category}&apiKey=${newsApiKey}`;
-  const NYTimesSearchByCategory = `https://api.nytimes.com/svc/news/v3/content/all/${category}.json?api-key=${nYTimesKey}`;
-  const theGuardianSearchByCategory = `https://content.guardianapis.com/search?section=${category}&page-size=20&show-fields=thumbnail&api-key=${theGuardianAPiKey}`;
+  // Helper function to build URLs based on filters
+  const buildUrls = () => {
+    // If we have both search query and category
+    if (searchQuery && category) {
+      return {
+        newsApi: `https://newsapi.org/v2/top-headlines?country=us&q=${searchQuery}&category=${category}&pageSize=100&apiKey=${newsApiKey}`,
+        nyTimes: `https://api.nytimes.com/svc/news/v3/content/all/${category}.json?q=${searchQuery}&api-key=${nYTimesKey}`,
+        guardian: `https://content.guardianapis.com/search?q=${searchQuery}&section=${category}&page-size=100&show-fields=thumbnail&api-key=${theGuardianAPiKey}`,
+      };
+    }
 
-  const newsApiSearchByQueryAndCategory = `https://newsapi.org/v2/top-headlines?country=us&q=${searchQuery}&category=${category}&apiKey=${newsApiKey}`;
-  const theGuardianSearchByQueryAndCategory = `https://content.guardianapis.com/search?q=${searchQuery}&section=${category}&show-fields=thumbnail&api-key=${theGuardianAPiKey}`;
+    // If we only have category
+    if (category) {
+      return {
+        newsApi: `https://newsapi.org/v2/top-headlines?country=us&category=${category}&pageSize=100&apiKey=${newsApiKey}`,
+        nyTimes: `https://api.nytimes.com/svc/news/v3/content/all/${category}.json?api-key=${nYTimesKey}`,
+        guardian: `https://content.guardianapis.com/search?section=${category}&page-size=100&show-fields=thumbnail&api-key=${theGuardianAPiKey}`,
+      };
+    }
 
-  const newsApiSearchUrl =
-    searchQuery.length > 0 && category?.length > 0
-      ? newsApiSearchByQueryAndCategory
-      : category?.length > 0
-      ? newsApiSearchByCategory
-      : searchQuery.length > 0 && newsApiSearchByQueryUrl;
+    // If we only have search query and/or date filters
+    return {
+      newsApi: `https://newsapi.org/v2/everything?${
+        searchQuery ? `q=${searchQuery}` : "q="
+      }${fromDate ? `&from=${fromDate}` : ""}${
+        toDate ? `&to=${toDate}` : ""
+      }&pageSize=100&apiKey=${newsApiKey}`,
 
-  const NYTimesSearchUrl =
-    searchQuery.length > 0 && category?.length > 0
-      ? ""
-      : category?.length > 0
-      ? NYTimesSearchByCategory
-      : searchQuery.length > 0 && NYTimesSearchByQueryUrl;
+      nyTimes: `https://api.nytimes.com/svc/search/v2/articlesearch.json?${
+        searchQuery ? `q=${searchQuery}` : "q="
+      }${fromDate ? `&begin_date=${fromDate.replace(/-/g, "")}` : ""}${
+        toDate ? `&end_date=${toDate.replace(/-/g, "")}` : ""
+      }&page=0&api-key=${nYTimesKey}`,
 
-  const theGuardianSearchUrl =
-    searchQuery.length > 0 && category?.length > 0
-      ? theGuardianSearchByQueryAndCategory
-      : category?.length > 0
-      ? theGuardianSearchByCategory
-      : searchQuery.length > 0 && theGuardianSearchByQueryUrl;
+      guardian: `https://content.guardianapis.com/search?${
+        searchQuery ? `q=${searchQuery}` : "q="
+      }${fromDate ? `&from-date=${fromDate}` : ""}${
+        toDate ? `&to-date=${toDate}` : ""
+      }&page-size=100&show-fields=thumbnail&api-key=${theGuardianAPiKey}`,
+    };
+  };
 
+  const urls = shouldFetch ? buildUrls() : null;
+
+  // Fetch data from all sources
   const { data: newsApiData, error: error1 } = useSWR(
-    newsApiSearchUrl,
-    fetcher
+    urls?.newsApi ? urls.newsApi : null,
+    fetcher,
+    {
+      ...swrOptions,
+      revalidateIfStale: false,
+      revalidateOnReconnect: false,
+    }
   );
+
   const { data: nYTimesApiData, error: error2 } = useSWR(
-    NYTimesSearchUrl,
-    fetcher
+    urls?.nyTimes ? urls.nyTimes : null,
+    fetcher,
+    {
+      ...swrOptions,
+      revalidateIfStale: false,
+      revalidateOnReconnect: false,
+    }
   );
+
   const { data: theGuardianApiData, error: error3 } = useSWR(
-    theGuardianSearchUrl,
-    fetcher
+    urls?.guardian ? urls.guardian : null,
+    fetcher,
+    {
+      ...swrOptions,
+      revalidateIfStale: false,
+      revalidateOnReconnect: false,
+    }
   );
 
-  const mergedArray = [
-    ...(newsApiData?.articles ?? []),
-    ...(nYTimesApiData?.response?.docs ?? nYTimesApiData?.articles ?? []),
-    ...(theGuardianApiData?.response?.results ??
-      theGuardianApiData?.response?.docs ??
-      []),
-  ];
+  // Filter data based on selected sources
+  let filteredData = [];
+
+  if (selectedSources && selectedSources.length > 0) {
+    selectedSources.forEach((source) => {
+      switch (source.label) {
+        case "News API":
+          if (newsApiData?.articles || newsApiData?.results) {
+            filteredData.push(
+              ...(newsApiData?.articles ?? newsApiData?.results ?? [])
+            );
+          }
+          break;
+        case "New York Times":
+          if (nYTimesApiData?.results || nYTimesApiData?.response?.docs) {
+            filteredData.push(
+              ...(nYTimesApiData?.results ??
+                nYTimesApiData?.response?.docs ??
+                [])
+            );
+          }
+          break;
+        case "The Guardian":
+          if (theGuardianApiData?.response?.results) {
+            filteredData.push(...theGuardianApiData.response.results);
+          }
+          break;
+      }
+    });
+  } else if (shouldFetch) {
+    filteredData = [
+      ...(newsApiData?.articles ?? newsApiData?.results ?? []),
+      ...(nYTimesApiData?.results ?? nYTimesApiData?.response?.docs ?? []),
+      ...(theGuardianApiData?.response?.results ?? []),
+    ];
+  }
+
+  // Sort results by date
+  filteredData.sort((a, b) => {
+    const dateA = new Date(a.publishedAt || a.pub_date || a.webPublicationDate);
+    const dateB = new Date(b.publishedAt || b.pub_date || b.webPublicationDate);
+    return dateB.getTime() - dateA.getTime();
+  });
+
+  const isLoading =
+    shouldFetch && !newsApiData && !nYTimesApiData && !theGuardianApiData;
+  const isError = error1 && error2 && error3;
 
   return {
-    searchResultData: mergedArray,
-    isSearchResultLoading:
-      (error1 || error2 || error3) &&
-      (!newsApiData || !nYTimesApiData || !theGuardianApiData),
-    isSearchResultError: error1 || error2 || error3,
-  };
-}
-
-export function useFetchNYTimesSectionListData() {
-  const NYTimesSectionUrl = `https://api.nytimes.com/svc/news/v3/content/section-list.json?api-key=${nYTimesKey}`;
-
-  const { data, error } = useSWR(NYTimesSectionUrl, fetcher);
-
-  return {
-    NYTimesSectionListData: data?.results || [],
-    isNYTimesSectionListDataLoading: !error && !data,
-    isNYTimesSectionListDataError: error,
-  };
-}
-
-export function useFetchTheGuardianSectionListData() {
-  const GuardianSectionUrl = `https://content.guardianapis.com/sections?api-key=${theGuardianAPiKey}`;
-
-  const { data, error } = useSWR(GuardianSectionUrl, fetcher);
-
-  return {
-    TheGuardianSectionListData: data?.response?.results || [],
-    isTheGuardianSectionListDataLoading: !error && !data,
-    isTheGuardianSectionListDataError: error,
+    searchResultData: filteredData,
+    isSearchResultLoading: isLoading && !isError,
+    isSearchResultError: isError,
   };
 }

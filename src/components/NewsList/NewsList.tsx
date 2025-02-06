@@ -16,7 +16,7 @@ const NewsList = ({ items }: { items: INewsItem[] }) => {
   );
 
   return (
-    <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mt-20">
+    <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8 mt-20">
       {filteredItems &&
         filteredItems?.map((article: any) => (
           <Card key={article.title} item={article} />

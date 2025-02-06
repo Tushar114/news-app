@@ -1,6 +1,9 @@
-import { INewsItem } from "../types";
+import { INewsItem, SelectOptions } from "../types";
 
-export const isValidDate = (dateString: string) => {
+export const isValidDate = (dateString: string | null) => {
+  if (dateString === null) {
+    return false;
+  }
   const regex = /^\d{4}-\d{2}-\d{2}$/;
 
   if (!regex.test(dateString)) {
@@ -16,7 +19,7 @@ export const isValidDate = (dateString: string) => {
 };
 
 export const filterNews = (
-  selectedSources: any,
+  selectedSources: Array<SelectOptions>,
   allBreakingNewsData: INewsItem[],
   allNewsApiData: INewsItem[],
   allNewYorkTimesData: INewsItem[],
@@ -43,30 +46,3 @@ export const filterNews = (
 
   return filteredNews;
 };
-
-// export const authorOptions = (newsData: INewsItem[]) => {
-//   return newsData.map((item) => {
-//     const articleAuthor = item.author
-//       ? item.author?.substring(0, 30)
-//       : typeof item?.source === "object" &&
-//         item?.source !== null &&
-//         item?.source?.name
-//       ? item?.source?.name?.substring(0, 30)
-//       : typeof item?.byline === "object" &&
-//         item?.byline !== null &&
-//         item?.byline?.original
-//       ? item?.byline?.original.substring(0, 30)
-//       : typeof item?.byline === "string" &&
-//         item?.byline !== null &&
-//         item?.byline?.length > 0
-//       ? item?.byline?.substring(0, 30)
-//       : item?.sectionName
-//       ? item?.sectionName?.substring(0, 30)
-//       : item?.subsection?.substring(0, 30);
-
-//     return {
-//       value: articleAuthor,
-//       label: articleAuthor,
-//     };
-//   });
-// };
