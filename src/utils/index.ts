@@ -46,3 +46,10 @@ export const filterNews = (
 
   return filteredNews;
 };
+
+export const getDaysInMonth = (month: number, year: number): number[] => {
+  if (!month || !year) return Array.from({ length: 31 }, (_, i) => i + 1);
+
+  const daysInMonth = new Date(year, month, 0).getDate();
+  return Array.from({ length: daysInMonth }, (_, i) => i + 1);
+};

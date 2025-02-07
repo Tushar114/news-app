@@ -10,7 +10,7 @@ import { Fragment } from "react";
 export const Navbar = () => {
   return (
     <Popover>
-      <div className="fixed backdrop-blur py-4 top-0 z-40 w-full bg-[#003366] p-4">
+      <div className="fixed backdrop-blur py-4 top-0 z-40 w-full bg-[#34383c] p-4">
         <nav
           className="w-[90%] my-0 mx-auto  text-lg font-medium flex flex-row items-center justify-between sm:h-10"
           aria-label="Global"
@@ -45,7 +45,7 @@ export const Navbar = () => {
       >
         <PopoverPanel
           focus
-          className="container px-5 sm:px-8 xl:px-0 max-w-5xl absolute inset-x-0 top-0 z-50 origin-top-right transform p-2 transition md:hidden bg-[#003366] text-white"
+          className="container px-5 sm:px-8 xl:px-0 max-w-5xl absolute inset-x-0 top-0 z-50 origin-top-right transform p-2 transition md:hidden bg-[#34383c] text-white"
         >
           <div className="overflow-hidden rounded-lg bg-darkTheme shadow-md ring-1 ring-black ring-opacity-5">
             <div className="flex items-center justify-between px-5 pt-4">

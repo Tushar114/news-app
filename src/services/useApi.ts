@@ -59,6 +59,8 @@ export function useFetchSectionsListData() {
   };
 }
 
+// ... rest of the imports and code remain the same ...
+
 export function useFetchSearchResultData(
   searchQuery: string,
   category: string | null,
@@ -67,47 +69,65 @@ export function useFetchSearchResultData(
   toDate: string | null
 ) {
   // Determine if we should fetch based on any filter being active
-  const shouldFetch = searchQuery || category || (fromDate && toDate);
+  const shouldFetch =
+    searchQuery ||
+    category ||
+    (fromDate && toDate) ||
+    (selectedSources.length > 0 && category);
 
   // Helper function to build URLs based on filters
   const buildUrls = () => {
-    // If we have both search query and category
-    if (searchQuery && category) {
-      return {
-        newsApi: `https://newsapi.org/v2/top-headlines?country=us&q=${searchQuery}&category=${category}&pageSize=100&apiKey=${newsApiKey}`,
-        nyTimes: `https://api.nytimes.com/svc/news/v3/content/all/${category}.json?q=${searchQuery}&api-key=${nYTimesKey}`,
-        guardian: `https://content.guardianapis.com/search?q=${searchQuery}&section=${category}&page-size=100&show-fields=thumbnail&api-key=${theGuardianAPiKey}`,
-      };
+    // Base parameters for each API
+    const newsApiParams = new URLSearchParams();
+    const nyTimesParams = new URLSearchParams();
+    const guardianParams = new URLSearchParams();
+
+    // Add common parameters
+    if (searchQuery) {
+      newsApiParams.append("q", searchQuery);
+      nyTimesParams.append("q", searchQuery);
+      guardianParams.append("q", searchQuery);
     }
 
-    // If we only have category
     if (category) {
-      return {
-        newsApi: `https://newsapi.org/v2/top-headlines?country=us&category=${category}&pageSize=100&apiKey=${newsApiKey}`,
-        nyTimes: `https://api.nytimes.com/svc/news/v3/content/all/${category}.json?api-key=${nYTimesKey}`,
-        guardian: `https://content.guardianapis.com/search?section=${category}&page-size=100&show-fields=thumbnail&api-key=${theGuardianAPiKey}`,
-      };
+      newsApiParams.append("category", category.toLowerCase());
+      // For NY Times, category is part of the path
+      guardianParams.append("section", category.toLowerCase());
     }
 
-    // If we only have search query and/or date filters
+    if (fromDate) {
+      newsApiParams.append("from", fromDate);
+      // NY Times uses different date format (YYYYMMDD)
+      nyTimesParams.append("begin_date", fromDate.replace(/-/g, ""));
+      guardianParams.append("from-date", fromDate);
+    }
+
+    if (toDate) {
+      newsApiParams.append("to", toDate);
+      // NY Times uses different date format (YYYYMMDD)
+      nyTimesParams.append("end_date", toDate.replace(/-/g, ""));
+      guardianParams.append("to-date", toDate);
+    }
+
+    // Add API specific parameters
+    newsApiParams.append("pageSize", "100");
+    newsApiParams.append("apiKey", newsApiKey);
+
+    nyTimesParams.append("api-key", nYTimesKey);
+    nyTimesParams.append("page", "0");
+
+    guardianParams.append("page-size", "100");
+    guardianParams.append("show-fields", "thumbnail");
+    guardianParams.append("api-key", theGuardianAPiKey);
+
     return {
-      newsApi: `https://newsapi.org/v2/everything?${
-        searchQuery ? `q=${searchQuery}` : "q="
-      }${fromDate ? `&from=${fromDate}` : ""}${
-        toDate ? `&to=${toDate}` : ""
-      }&pageSize=100&apiKey=${newsApiKey}`,
-
-      nyTimes: `https://api.nytimes.com/svc/search/v2/articlesearch.json?${
-        searchQuery ? `q=${searchQuery}` : "q="
-      }${fromDate ? `&begin_date=${fromDate.replace(/-/g, "")}` : ""}${
-        toDate ? `&end_date=${toDate.replace(/-/g, "")}` : ""
-      }&page=0&api-key=${nYTimesKey}`,
-
-      guardian: `https://content.guardianapis.com/search?${
-        searchQuery ? `q=${searchQuery}` : "q="
-      }${fromDate ? `&from-date=${fromDate}` : ""}${
-        toDate ? `&to-date=${toDate}` : ""
-      }&page-size=100&show-fields=thumbnail&api-key=${theGuardianAPiKey}`,
+      newsApi: category
+        ? `https://newsapi.org/v2/top-headlines?${newsApiParams.toString()}&country=us`
+        : `https://newsapi.org/v2/everything?${newsApiParams.toString()}`,
+      nyTimes: category
+        ? `https://api.nytimes.com/svc/news/v3/content/all/${category}.json?${nyTimesParams.toString()}`
+        : `https://api.nytimes.com/svc/search/v2/articlesearch.json?${nyTimesParams.toString()}`,
+      guardian: `https://content.guardianapis.com/search?${guardianParams.toString()}`,
     };
   };
 
@@ -150,11 +170,9 @@ export function useFetchSearchResultData(
   if (selectedSources && selectedSources.length > 0) {
     selectedSources.forEach((source) => {
       switch (source.label) {
-        case "News API":
-          if (newsApiData?.articles || newsApiData?.results) {
-            filteredData.push(
-              ...(newsApiData?.articles ?? newsApiData?.results ?? [])
-            );
+        case "News.org":
+          if (newsApiData?.articles) {
+            filteredData.push(...newsApiData.articles);
           }
           break;
         case "New York Times":
@@ -175,7 +193,7 @@ export function useFetchSearchResultData(
     });
   } else if (shouldFetch) {
     filteredData = [
-      ...(newsApiData?.articles ?? newsApiData?.results ?? []),
+      ...(newsApiData?.articles ?? []),
       ...(nYTimesApiData?.results ?? nYTimesApiData?.response?.docs ?? []),
       ...(theGuardianApiData?.response?.results ?? []),
     ];

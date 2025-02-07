@@ -3,7 +3,11 @@ import Card from "../Card/Card";
 import { useLazyLoad } from "../../hooks/useLazyLoad";
 import { INewsItem } from "../../types";
 
-const NewsList = ({ items }: { items: INewsItem[] }) => {
+interface NewsListProps {
+  items: INewsItem[];
+}
+
+const NewsList: React.FC<NewsListProps> = ({ items }) => {
   const loaderTriggerRef = useRef(null);
   const { visibleItems, isLastPage } = useLazyLoad(
     items,
@@ -18,7 +22,7 @@ const NewsList = ({ items }: { items: INewsItem[] }) => {
   return (
     <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8 mt-20">
       {filteredItems &&
-        filteredItems?.map((article: any) => (
+        filteredItems?.map((article: INewsItem) => (
           <Card key={article.title} item={article} />
         ))}
       <div

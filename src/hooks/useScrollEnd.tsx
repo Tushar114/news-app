@@ -1,21 +1,24 @@
-import { useEffect } from 'react'
+import { useEffect } from "react";
 
 export function useScrollEnd(
   element: HTMLElement | null,
-  onScrollEnd: () => void,
+  onScrollEnd: () => void
 ) {
   useEffect(() => {
     if (element) {
-      const observer = new IntersectionObserver(([entry]) => {
-        if (entry.isIntersecting) {
-          onScrollEnd()
-        }
-      })
-      observer.observe(element)
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            onScrollEnd();
+          }
+        },
+        { threshold: 1.0 }
+      );
+      observer.observe(element);
 
       return () => {
-        observer.disconnect()
-      }
+        observer.disconnect();
+      };
     }
-  }, [element, onScrollEnd])
+  }, [element, onScrollEnd]);
 }
