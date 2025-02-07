@@ -34,31 +34,31 @@ export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i).map(
     (year) => ({
-      value: year,
+      value: year.toString(),
       label: year.toString(),
     })
   );
 
   const months = Array.from({ length: 12 }, (_, i) => i + 1).map((month) => ({
-    value: month,
+    value: month.toString(),
     label: new Date(2000, month - 1, 1).toLocaleString("default", {
       month: "long",
     }),
   }));
 
   const fromDays = getDaysInMonth(
-    selectedFromMonth?.value as number,
-    selectedFromYear?.value as number
+    Number(selectedFromMonth?.value),
+    Number(selectedFromYear?.value)
   ).map((day) => ({
-    value: day,
+    value: day.toString(),
     label: day.toString(),
   }));
 
   const toDays = getDaysInMonth(
-    selectedToMonth?.value as number,
-    selectedToYear?.value as number
+    Number(selectedToMonth?.value),
+    Number(selectedToYear?.value)
   ).map((day) => ({
-    value: day,
+    value: day.toString(),
     label: day.toString(),
   }));
 

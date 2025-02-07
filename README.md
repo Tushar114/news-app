@@ -7,7 +7,7 @@ Also, users can personalized news feed that able to customize their news feed by
 
 ## Architecture
 
-The application is built using:
+The application is bootstraped using Vite with the following technologies:
 
 - React
 - TypeScript
@@ -43,17 +43,23 @@ npm install
 cp .env.example .env
 ```
 
-## Technologies
-
-- **React**: Utilized for the developing the user interfaces.
-- **Vite**: used as the bundler for the React app; It's a fast build tool for modern web development, and supports typescript out of the box.
-- **TypeScript**: A superset of JavaScript that adds static types, enhancing code quality and maintainability in the React app.
-- - Tailwind CSS - A utility-first CSS framework.
-- **Prettifier**: Code formatting is maintained with Prettier, ensuring a consistent and clean codebase.
-
 ## Running with Docker
 
-### Option 1: Using Docker Compose (Recommended)
+### Option 1: Using Docker directly
+
+1. Build the Docker image:
+
+```bash
+docker build -t news-app .
+```
+
+2. Run the container:
+
+```bash
+docker run -p 3000:3000 news-app
+```
+
+### Option 2: Using Docker Compose
 
 1. Build and start the container:
 
@@ -67,20 +73,6 @@ docker-compose up --build
 
 ```bash
 docker-compose down
-```
-
-### Option 2: Using Docker directly
-
-1. Build the Docker image:
-
-```bash
-docker build -t news-aggregator .
-```
-
-2. Run the container:
-
-```bash
-docker run -p 3000:3000 news-aggregator
 ```
 
 ## Running Locally (Without Docker)
@@ -105,4 +97,3 @@ npm start
 - `npm test` - Run tests
 - `npm run build` - Create production build
 - `npm run lint` - Run linter
-- `npm run format` - Format code with Prettier

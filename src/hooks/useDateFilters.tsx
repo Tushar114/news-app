@@ -25,15 +25,15 @@ export function useDateFilters() {
 
   useEffect(() => {
     const fromDateString = formatDateString(
-      selectedFromYear?.value,
-      selectedFromMonth?.value,
-      selectedFromDay?.value
+      Number(selectedFromYear?.value),
+      Number(selectedFromMonth?.value),
+      Number(selectedFromDay?.value)
     );
 
     const toDateString = formatDateString(
-      selectedToYear?.value,
-      selectedToMonth?.value,
-      selectedToDay?.value
+      Number(selectedToYear?.value),
+      Number(selectedToMonth?.value),
+      Number(selectedToDay?.value)
     );
 
     if (fromDateString && toDateString) {

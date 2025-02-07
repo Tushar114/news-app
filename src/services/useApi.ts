@@ -3,7 +3,7 @@ import axios from "axios";
 import { newsApiKey, nYTimesKey, theGuardianAPiKey } from "../constants";
 import { SelectOptions } from "../types";
 
-const fetcher = (url) => axios.get(url).then((res) => res.data);
+const fetcher = (url: string) => axios.get(url).then((res) => res.data);
 const swrOptions = { revalidateOnFocus: false, dedupingInterval: 60000 };
 
 const endpoints = {
@@ -58,8 +58,6 @@ export function useFetchSectionsListData() {
     TheGuardianSectionListData: guardianData?.response?.results || [],
   };
 }
-
-// ... rest of the imports and code remain the same ...
 
 export function useFetchSearchResultData(
   searchQuery: string,
@@ -165,7 +163,7 @@ export function useFetchSearchResultData(
   );
 
   // Filter data based on selected sources
-  let filteredData = [];
+  let filteredData: Array<any> = [];
 
   if (selectedSources && selectedSources.length > 0) {
     selectedSources.forEach((source) => {

@@ -15,7 +15,6 @@ export function useLocalStorage() {
     if (storedPreferences) {
       const parsedData = JSON.parse(storedPreferences);
       setLocalStorageData(parsedData);
-      // setIsEmptyLocalStorage(false);
     }
   }, []);
 

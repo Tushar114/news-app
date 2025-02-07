@@ -38,7 +38,7 @@ const HomePage: React.FC = () => {
   const [query, setQuery] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSource, setSelectedSource] = useState<
-    readonly SelectOptions[] | SelectOptions
+    readonly SelectOptions[]
   >(localStorageData?.selectedSources || []);
   const [selectedCategory, setSelectedCategory] =
     useState<SelectOptions | null>(localStorageData?.selectedCategory || null);
@@ -76,7 +76,7 @@ const HomePage: React.FC = () => {
   const filteredNews = useMemo(
     () =>
       filterNews(
-        selectedSource,
+        Array.isArray(selectedSource) ? selectedSource : [selectedSource],
         allBreakingNewsData,
         allNewsApiData,
         allNewYorkTimesData,
@@ -215,7 +215,7 @@ const HomePage: React.FC = () => {
       </div>
 
       <ResultsSection
-        isLoading={isSearchResultLoading}
+        isLoading={!!isSearchResultLoading}
         isError={isSearchResultError}
         searchQuery={searchQuery}
         newsData={newsData}

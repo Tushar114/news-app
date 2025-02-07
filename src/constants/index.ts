@@ -20,9 +20,9 @@ export const newsApiOrgCategoryList = [
 ];
 
 export const sourceOptions: SelectOptions[] = [
-  { value: 1, label: "News.org" },
-  { value: 2, label: "New York Times" },
-  { value: 3, label: "The Guardian" },
+  { value: "1", label: "News.org" },
+  { value: "2", label: "New York Times" },
+  { value: "3", label: "The Guardian" },
 ];
 
 export const dayOptions = Array.from({ length: 30 }, (_, i) => ({

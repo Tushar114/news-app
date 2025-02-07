@@ -9,8 +9,6 @@ interface ResultsSectionProps {
   searchQuery: string;
   newsData: INewsItem[];
   searchResultData: INewsItem[];
-  isShowingFavorites: boolean;
-  localStorageData: INewsItem[];
 }
 
 export const ResultsSection: React.FC<ResultsSectionProps> = ({
@@ -19,8 +17,6 @@ export const ResultsSection: React.FC<ResultsSectionProps> = ({
   searchQuery,
   newsData,
   searchResultData,
-  isShowingFavorites,
-  localStorageData,
 }) => {
   if (isLoading) {
     return <NewsSkeleton />;
@@ -32,14 +28,6 @@ export const ResultsSection: React.FC<ResultsSectionProps> = ({
         <pre>Oops! Something went wrong</pre>
         <pre>Please try again later.</pre>
       </div>
-    );
-  }
-
-  if (isShowingFavorites && localStorageData.length === 0) {
-    return (
-      <p className="col-span-full text-lg font-bold text-center mt-4">
-        No favorite articles saved yet.
-      </p>
     );
   }
 
